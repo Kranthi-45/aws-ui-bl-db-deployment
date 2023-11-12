@@ -1,0 +1,209 @@
+Creating EC2 instance to host reactapp using nginx
+==============================================
+
+Existing EC2 running instance link:
+-----------
+https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running
+
+->  react project
+->  npm run build
+  architecture
+  	system(xyz.com) 	->  ISP  -> DNs -> Machine (ip:port)
+ 	aws system(xyz.com) 	->  ISP  -> Machine(ip:port)
+ 
+  Ip address - used to indentify machine in server (or to identidy the server)
+  port no - used to identify which application to communicate withing that specified machine.
+
+
+->  EC2 -> Launch instance
+
+   -Name of service   -> ubuntu
+   -Key pair login  (create new pair login)
+     keypairname  -> RSA -> putty -> create key pair ( .ppk keypair file will be downloaded)
+
+    (we will use puTTy to login connect to this server app using ssh)
+   -Network -> Allow HTTP & HTTPS  (not done currently)
+
+   click Launch Instance (it will sync up new server for you  & assigns unique ip address to that machine - ex new computer being released in the internt, if i have unique ip address
+ we can easily find the instance)
+
+  -> come to instance
+     - select our created instance(tick mark)
+     - go to details section, copy Public IPv4 address
+ 				   3.80.64.209 |open address 
+ 
+  -> open puTTy(if now present download from internt)
+      - paste above aws ip address here in puttY HostName
+      - go to SSH -> Auth(tell to puTTY we authorize to use this & key key upload downloaded file above)
+      - go to session again (give session name - next time when u open dont need to do above
+config again)  -> session name -> save -> select saved session -> open -> accept
+
+                               or
+  ->  click on connect ->  dont do anything connect -> opens ubunut terminal in newtab
+
+  #commands
+    sudo su  (as super user we can perform all actions & n number of things)
+    clear
+
+ steps:
+ ------
+  1. connet to new Created Instances
+  2. sudo apt-get update (mantain updates upto date in ubuntu OS  - pakcages get update)
+  3. After update close console (close console tab)
+  4. once again connect to Instance (connet btn -> click connect to console)
+  5. sudo su
+  6. sudo apt-get install curl - (install curl library , so we can access any applicaiton with this curl library & downlod any apps)
+              or
+      apt-get install curl
+  7.curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -  (throw curl library we need to connect nodejs path & setup)
+
+use below commands if u get deprected warnings in conolse while installing node
+--------
+# Update your package manager's information
+sudo apt update
+
+# Install the required dependencies
+sudo apt install -y curl
+
+# Add the NodeSource repository for Node.js 16.x
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/nodesource-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/nodesource-archive-keyring.gpg] https://deb.nodesource.com/node_16.x jammy main" | sudo tee /etc/apt/sources.list.d/nodesource.list > /dev/null
+
+echo "deb-src [signed-by=/usr/share/keyrings/nodesource-archive-keyring.gpg] https://deb.nodesource.com/node_16.x jammy main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list > /dev/null
+
+# Update your package manager's information
+sudo apt update
+
+# Install Node.js and npm
+sudo apt install -y nodejs
+
+----------------
+
+8. These is the command install node js inside ubuntu server  (if not done above)
+9. sudo apt-get install nodejs - to get nodejs & npm with that (if not done above)
+10. Check installed node & npm using node -v & npm -v
+11. sudo apt-get install nginx -y (install nginx server if we want to deply react via nginx)
+                                  (to host react application we need nginx)
+12. check nginx version
+     nginx -v
+13. After all installtion go to html folder using 
+     cd /var/www/html/
+    - go to console
+    - first
+        cd /         (come to home path)
+        ls
+        cd var/
+        ls
+        cd www/
+        ls
+        cd html/
+        ls          ( u will see default nginx .html file  & we need to create folders here)
+14. Check folders or other list using command ls
+15. Go to your EC2 instances Dashboard and go to security group and click security group link.
+16. Inside it click Edit inbound Rules
+       Add HTTP & HTTPS rule if we did not added earlier above.
+17. Add rule click and set type as HTTP and select source as Anywhere custom ip4 and click save rules
+18.After doing all this stuff then get instances public ip address and open it with new
+ chrome tab
+  ex: http://3.80.64.209/
+  it will show nginx welcome page template.
+
+---------- 
+Install React and run foreever             (movie-ui  or myapp)
+
+1. npx create-react-app movie-ui     (creating directly in ec2 instanceserver)
+2. cd movie-ui                       (navigate to creadted movie-ui app folder inside /var/www/html folder)
+3. Before start application you must go to your instances security group again & setup inbound rules  -- becaue on which port u want to host react app
+4. Inside security group clickAdd rule and set type as Custome TCP and give port as 3000
+ and add another rule with custom TCP with port 8080(to nodejs/springboot backend port)
+ and select source as Anywhere custom ip4.
+
+#commands
+  ls   (will list default nginx .html file & movie-ui app folder created above)
+  chmod 777 -R movie-ui/         (give read, write execute permission -R rights to give at a time for files inside folder)
+  
+
+5. Then go inside movie-ui folder run command
+    npm start
+    now go & see in chrome web react app will be seen with configured port <ip>:3000
+   Domain name is fixed  -> to check 
+    Ec2 instance -> instances(running) -> click on instance ID ->   
+          you will find our ip4 address with http we can access
+          you will find public ipv4 DNS means hostname, with hostname also we cann website
+
+   http://3.80.64.209/      (ngnix welcome on default domain address)
+   http://3.80.64.209:3000/ (with 3000 port we can access our react-app)
+
+-- whenever we get errors it will get disturb & stops , so we need to run forever pls follow below step
+--- Now copy your local react-app inside here in ec2 instance
+ 
+6.To start forever run inside react install pm2 globally 
+     or
+  perform our application in continus mode
+     npm install pm2 -g
+7.Navigate to the project folder and execute, space is required after -
+     pm2 start npm -- start
+8.to see running instaces
+     pm2 ps
+9.This is the react foreever run..
+
+copying react-app from local to server instance:
+-----------------------------------
+
+1. download winscp
+2. open winscp
+	- Newsite 
+           Enter Hostname (copy from ec2 instance Hostname knowns as DNS)
+				Public IPv4 DNS
+ 				ec2-3-80-64-209.compute-1.amazonaws.com
+          username: ubuntu
+          password:         (for authentication we dont have password but we have .ppk file)
+       
+       - go to advance section -> SSH -> Authentication -> Private Key file (upload downloaed .ppk file)
+       - click login
+  
+3. Now local machine is connected to EC2 instance server succesfully via winSCP using
+   .ppk key
+4. opens at
+     /home/ubuntu   path (go back upto last home)
+5. Then go to
+    var -> www -> html -> movie-ui (u will find our project code /folder where it is running)
+
+6. now instead of replacing demo react app which is created directly inside for testing
+   lets go to aws terminal  & in same location will create another folder for our local   project & then copy entire code from local to server in created path using winSCP.
+
+#commands
+  cd ..
+  cd movie-ui-webapp
+  chmode 777 -R movie-ui-webapp
+
+7.Copy files using winSCP
+  from local copy all files except nodefiles to server
+
+8.Now install node modules & start (go to terminal in ec2 instance)
+  #commands
+  cd movie-ui-webapp
+  ls
+  chmod 777 -R *                   (inside give rights to all files package.json like that)
+  ls
+  npm install
+
+9. Run using
+   npm start  
+     
+      or
+   using pm2  check above for that how to install pm2 & start react app via pm2
+
+10. Done with reactapp
+
+
+
+
+
+
+
+       
+
+  
+

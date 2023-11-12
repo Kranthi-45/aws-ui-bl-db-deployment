@@ -1,0 +1,141 @@
+Creating RDS 
+================
+
+Existing RDS link:
+-----
+https://us-east-1.console.aws.amazon.com/rds/home?region=us-east-1#database:id=moviedb;is-cluster=false
+
+-> Search for RDS in aws service & open in newtab
+-> create Database
+    -Engine option = mysql
+    -version       = MySQL8.0.20
+    -Templates     = Freetire
+    -settings
+       give db name = movie
+       Master username, pwd & confirm pwd  = root/rootpassword 
+    -connectivity
+        public access = yes
+    -Additional config
+       3306 port mysql default port
+
+   Additional Configuration (outside)
+     - give schema name -  movie
+
+-> Finally click on 
+    create Database
+
+   
+-> It will take some time to create
+   Now we created the RDS instance & need to provide RDS endpoint in our springboot
+   Application configurations instead localhost need to point aws db/rds instance url
+
+   application.properties
+	spring.datasource.url=jdbc:mysql://localhost:3306/movies5
+	spring.datasource.username=root
+	spring.datasource.password=Ks_961796
+
+-> When status is Available then db is created successfully.
+                         
+                           
+-> For RDS/DB endpoint of aws
+   wait untill db is created then go to
+    Databases -> dbinstance u will see (click on Database Identifier) -> Database Identifier
+              -> Connectivity & security (copy the endpoint url) 
+
+
+-> copy above RDS endpoint url  ,created username & password in application.properties file as below
+
+#aws RDS mysql configs
+spring.datasource.url=jdbc:mysql://moviedb.cpyvqeigqkwn.us-east-1.rds.amazonaws.com/moviedb
+spring.datasource.username=root
+spring.datasource.password=rootpassword
+
+-> Step (optional)
+   Click on DB indentifier ->  connectivity & security  -> VPC security groups(click on it)
+   -> Enable port number 3306 -> select securitygroupid -> Inbound rules (here enable protocols) -> Edit inbound rules -> Add rule -
+
+	Custom TCP	TCP3306		Anywhere-IPv4 0.0.0.0/0 
+   	
+   -db is running on default security groups, that will stops our request If we dont enable protocal , the db/protocal running on 3306.
+
+
+-> By adding protocol/inbound rule, we are telling AWS security groups to allow the request to 3306 port/protocal.
+
+-> Once Database is created, how to verify are we able to connect to cloud db or not we can use Mysql Workbench
+
+-> Open Mysql Workbench
+	- crete new connection -> + symbol
+		connection name: AWS-RDS-MYSQL
+		Host Name: moviedb.cpyvqeigqkwn.us-east-1.rds.amazonaws.com (endpoint name in aws rds)
+		username:root
+		password:rootpassword
+
+        - click on Test connection or ok  (Mysql connection is successfull it is done).
+	- open AWS-RDS-MYSQL connection , execute below queries to check
+	
+		show databases;
+		use moviedb;
+		show tables;
+
+-------------------
+
+-> Now we need to deploy the backend code in Elastic Beanstalk
+   Either u can directly deploy into Elastic Beanstalk or
+    create EC2 instance for backend code & then deploy it
+
+-> If we are using Elastic Beanstalk need to change port to 5000 as below
+  
+    application.properties
+      
+     server.port=5000  
+   
+-> Create jar of backend application
+    mvn clean install -DskipTests
+    mvn clean package -DskipTests
+
+-> Go to AWS management console/ search bar
+  
+   -search for Elastic Beanstalk
+   -Open in new tab  
+   -becoz we need to deploy our jar to elatic beanstalk
+   -internally it will store artifacts in S3 bucket & creates EC2 instance with that
+
+Elastic Beanstalk:
+-----------
+  
+-> Create Environment
+    web server environment -> select -> Fill details
+
+    Application Information
+	Application name= movie-bl-service
+
+    Environment Information  - created automatically
+        Domain = moviebl  (check availablity)
+    
+    Platform
+        platform name = Java
+        platform branch = select java 8 or select available one
+    
+   -click on configure more options -> db settings
+         or
+     Next - Next -> untill u see Database settings
+      
+     Database
+          Enable it  & provide username & password of created mysql RDS instance.
+   
+   -Next -> next -> submit or create environment
+
+-> It will take some time to complete to create elastic beanstack environment
+-> Internally it will create RDS instance with the given details of db in elatic bean stalk & configure with the bean stalk, so we can host or application into elastic bean stalk
+
+-> Then it will Internally create EC2 instance also
+ 
+ 
+
+    
+
+
+
+     
+  
+

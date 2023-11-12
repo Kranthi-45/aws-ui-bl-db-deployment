@@ -1,0 +1,99 @@
+-------------------
+
+-> Now we need to deploy the backend code in Elastic Beanstalk
+   Either u can directly deploy into Elastic Beanstalk or
+    create EC2 instance for backend code & then deploy it
+
+-> If we are using Elastic Beanstalk need to change port to 5000 as below
+  
+    application.properties
+      
+     server.port=5000  
+   
+-> Create jar of backend application
+    mvn clean install -DskipTests
+    mvn clean package -DskipTests
+
+-> Go to AWS management console/ search bar
+  
+   -search for Elastic Beanstalk
+   -Open in new tab  
+   -becoz we need to deploy our jar to elatic beanstalk
+   -internally it will store artifacts in S3 bucket & creates EC2 instance with that
+
+Elastic Beanstalk:
+-----------
+  
+-> Create Environment
+    web server environment -> select -> Fill details
+
+    Application Information
+	Application name= movie-bl-service
+
+    Environment Information  - created automatically
+        Domain = moviebl  (check availablity)
+    
+    Platform
+        platform name = Java
+        platform branch = select java 8 or select available one
+    
+   -click on configure more options -> db settings
+         or
+     Next - Next -> untill u see Database settings
+      
+     Database
+          Enable it  & provide username & password of created mysql RDS instance.
+   
+   -Next -> next -> submit or create environment
+
+-> It will take some time to complete to create elastic beanstack environment
+-> Internally it will create RDS instance with the given details of db in elatic bean stalk & configure with the bean stalk, so we can host or application into elastic bean stalk
+
+-> Then it will Internally create EC2 instance also
+ 
+ 
+--------Elastic Beanstalk
+
+https://us-east-1.console.aws.amazon.com/elasticbeanstalk/home?region=us-east-1#/applications
+
+-> create Application
+-> Fill below details
+	Application name: movie-bl-service
+	Platform:	Java
+	Application code: Upload your code 
+			  version label name: movie-bl-service
+			-> Local file -> Upload jar file
+-> Next 
+   go to step3  where Database configurations available
+	
+	Database ->
+			-Enable
+			-Fill db details, username & pass
+			-Create snapshot
+
+-> I will skip all the optional steps,  go to final Review step & submit
+
+-> Then it will create Environment in the backend then our application will deploy there
+    so then we can use our application.
+
+   -so while using deployed app there are some issues regardin port we should aware
+   -by default it/beans tag accepts to run in 5000 port
+   -if our application runs in 5000 port, the request which comes on 80 will
+     forwarded to 5000 & we can use our application (currently our bl app running 80 or 90       	port).
+   -configure below in application.properties in springboot jar
+
+	#Elastic Beanstalk port
+	server.port=5000
+
+
+https://us-east-1.console.aws.amazon.com/elasticbeanstalk/home?region=us-east-1#/applications
+
+
+
+
+    
+
+
+
+     
+  
