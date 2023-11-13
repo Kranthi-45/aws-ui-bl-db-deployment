@@ -1,0 +1,218 @@
+===============SpringBoot deployment in EC2 instance
+======================================================
+
+https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#InstanceDetails:instanceId=i-055881bd4cf5439d0
+
+-> Update SpringBoot app application.properties with below RDS configs if we use 
+
+   application.properties:  (AWS RDS)
+
+	spring.datasource.url=jdbc:mysql://moviedb.cpyvqeigqkwn.us-east-1.rds.amazonaws.com/moviedb
+	spring.datasource.username=root
+	spring.datasource.password=rootpasswordDB
+	server.port = 8080
+
+-> Now Run springboot app in local & see able to access cloud RDS db or not, accessing of API's.
+
+-> Login AWS
+
+-> Open EC2 Instance
+
+    => EC2 -> Launch Instance -> Enter app name(movieBL)
+				 Select Amazon Linux / ubuntu in Application & OS Images.
+				 Choose Freetire eligible from dropdown
+
+	   -> Keypair -> Generate new key pair (same as SSH creds to securely login into this EC2 instance)
+			 - This EC2 instance is on AWS when going to login this Instance or connecting to it from our local machine requires keypair
+
+		      -> Enter pair name -> RSA  & .pem file format -> Create submit (it will downloads in computer)
+	              -> Create new Folder as pemFiles in project location & move above generated file into that folder.
+	   
+	  -> Network Settings -> Leave it as it is, Allow SSH anywhere
+
+	  -> Advance Details   -> Leave it as it is
+
+          -> Finally Click on Launch Instance(will take some time to create)
+
+          -> Open the Created Instance (wait untill Instance state becoms Available)
+		
+	  -> click on InstanceID 
+		      -> Details -> copy Instance ipv4 public address
+                 
+                		public ipv4 address = to connect this instance to outside aws platform (ex: 52.54.207.72 (movieBL instance))
+                		private ipv4 address =  connect instance to instance within aws platform (ex: 172.31.32.25)
+		      
+		      -> Security -> To make our instance accessible easily need to add security
+				  -> Click on security groups -> Inbound Rules -> Edit Inbound rules (default shows SSH rule)
+					- that means we can only access to this instance throw SSH by default
+					- to access it from outside/other product add new rule with TCP as below
+				  -> Add Rule: as below
+					CustomType     8080 port   Anywhere  0.0.0.0/0
+				  -> Save Rules
+         
+	 -> Go back to Instance -> select Instance(tick it) -> click on connect
+
+			-> Connect to Instance via SSH Client (choose SSH Client from navbar option)
+
+			-> open new terminal: (EC2 instance connected via terminal)
+
+                                -go to secreateKeyPair downloaded location & enter (chmod 400 movieBL.pem) in terminal.
+					chmod 400 movieBL.pem
+                                -paste below AWS instance ssh url in terminal 
+					ssh -i "movieBL.pem" ec2-user@ec2-100-95-197.compute-1.amazonaws.com
+
+				- yes & Enter, 
+				- now local terminal/machine successfully connected to EC2 cloud instance via SSH
+				- updates dependencies in instance
+					sudo yum update
+				- yes & Enter
+				- Need to install JDK to run our spring app, go to amazon link for install commands
+				  link: https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/amazon-linux-install.html
+
+					sudo yum install java-17-amazon-corretto-headless
+				- check java version to confirm installation
+					java -version
+				- check address (will give ec2 server full path)
+					pwd	(ex: /home/ec2-user)
+
+        -> Move/copy Jar file to Instance -> generate jar from eclipse directly by going to project location
+						    or
+					mvn clean intall -DskipTests
+					mvn clean package -DskipTests
+
+		    	-> open another new terminal:
+
+				- navigate to jar location
+					cd /target
+					ls
+                                - take ssh url from instace  & edit as below  (ssh -i "movieBL.pem" ec2-user@ec2-100-95-197.compute-1.amazonaws.com)
+					#ssh -i "movieBL.pem" ec2-user@ec2-100-95-197.compute-1.amazonaws.com  (reference )
+
+					#scp -i <.pem file path> <.jar file> <ec2_ssh_connect_url>:<ec2_instance_server_path> 
+(scp = secure copy, 
+cd %HOMEPATH%\Downloads to go downloads location directly 
+                 or
+cd C:\Users\DELL\Downloads
+
+chmod 400 "C:\Users\DELL\Downloads\secreate KeyPair\movieBL.pem"
+
+)
+
+					scp -i /desktop/pemFiles/movieBL.pem movieBL-SNAPSHOT.jar ec2-user@ec2-100-95-197.compute-1.amazonaws.com:/home/ec2-user
+
+								or
+
+					scp -i "C:\Users\DELL\Downloads\secreate KeyPair\movieBL.pem" springRest-movieProject-1-0.0.1-SNAPSHOT.jar ec2-user@ec2-52-54-207-72.compute-1.amazonaws.com:/home/ec2-user
+
+
+				- once copy is 100% & go to previous step where ec2 loggedin terminal & check wheather jar completly copied into that successfully or not by
+					ls    (u will movieBL-SNAPSHOT.jar here)
+					
+				- Run backend using
+					java -jar
+                                     			or
+					java -jar springRest-movieProject-1-0.0.1-SNAPSHOT.jar
+
+
+			-> Open Postman & check
+				- use ec2instance ipv4 url instead localhost now as below
+					#https://localhost:8080/movies
+					#<ipv4>:<port>/path
+
+					https://100.25.162.197:8080/movies
+ 
+
+                        -> Open Reactapp & changes urls from localhost to ipv4 also
+			-> Check aws RDS DB also by adding data via postman
+
+	-> Backend is deployed successfully
+				  
+
+===============React UI deployment via S3
+======================================================
+
+https://s3.console.aws.amazon.com/s3/buckets/movie-ui?region=us-east-1&tab=objects
+
+-> Create React app
+	-generate build folder
+		npm run build
+
+-> Open S3 in aws in newtab
+	=> S3 ->  create bucket -> Fill details
+					-BuckateName: movieUI
+				   	-Block Public Access Settings for this bucket:  untick that (Block all public access)
+
+				-> Create & submit bucket
+
+	      -> Open the created bucket
+			path : Amazon S3/Buckets/movieUI/
+
+			-permissions:
+		         ------------
+
+				Bucket Policy -> edit ->copy paste the below script in Policy area(means then s3 bucket is publically accessible)
+			 	 policylink: https://gist.github.com/dennisiluma/bb44e8b828c88ceda73105db0876dd04
+				 policy:
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::yourbucketname/*"
+        }
+    ]
+}
+
+				-> just edit script "Resources" name with movie-ui created bucketname
+				-> save changes
+
+			-properties:
+			------------
+				scroll down -> static website hosting (currently disabled) 
+					    -> edit
+						-enable 
+						-choose Host a static website
+						-index document enter as
+							index.html
+						-Error document also same
+							index.html	
+					    -> save changes
+				
+ 			-Objects:
+			---------
+				uploads -> click upload btn
+						-> Add files -> select individual files in build folder like index.html file  & another singles files 
+							select all & upload
+					-> click upload btn again
+						-> Add Folder -> select folders now in build & selectall then upload
+	               
+			-> Go to properties of again particular movieui S3 buckets
+				scroll down last
+				-Static website Hosting
+				-Take status UI url from there now UI is loaded
+
+http://movie-ui.s3-website-us-east-1.amazonaws.com/
+
+
+Amazon-s3:
+
+Free Tier Eligibility:
+
+Be aware of the AWS Free Tier limits for S3, which include 5 GB of standard storage, 20,000 GET and 2,000 PUT requests per month. Stay within these limits to avoid charges during the Free Tier period.
+
+Learning links:
+https://www.youtube.com/watch?v=YC7NBNICGeY
+
+
+
+=======================================================================
+
+
+
+
+
+     
+  
