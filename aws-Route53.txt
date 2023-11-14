@@ -1,0 +1,126 @@
+Domain Name using Route 53
+==========================
+
+-> It's a powerfull DNS service of a AWS, In this we will learn how to buy a domain from 3rd party domain provider & connect to Route 53
+-> So you can start Routing traffic to th services in AWS using Route 53.
+
+Custom Domain Name:
+-------------
+
+-> Login AWS
+-> Search or Head over to Route 53
+-> You will see Hosted Zones or Create one new Hosted zone (nothing but domain)
+-> Create New Hosted zone
+	-Each Hostedzone will costs 50 cents per a month for free tier also.
+	-Domain name:  we can purchase domainnames via AWS but it is more expensive & limited
+
+->NameCheap (3rd party to buy domainname)
+
+        -Go to 3rd party to buy domain name ex: namecheap
+		- link: https://namecheap.com
+		- search with name u want to create, it will show results with domain & costs. then choose chepeast one
+			ex:  kranthi.xyz   ()
+		- Add to cart & checkkout,  sighnup & login to namecheap.com to proceed further
+		- confirm order
+		- Need to manage the domainname now,  click on manage button
+		- Under NAMESERVERS: select Custom DNS
+	                                <aws_hosted_zones_name>
+					------------------- (add point this domain names to aws, if anyone goes to our domainname & then end, it will determine by aws)
+
+                - Before that neeed to provide aws hostedzone  & so please create hostedzone in aws.
+
+-> Create New Hosted zone
+
+	- Domain name:  kranthi.xyz (which recently purchased in namecheap)
+	  Type:		publiz hosted zone (becoz I need people need to access via public internet)
+	
+	- Click Create Hosted Zone  (will take only few seconds)
+
+-> Go to HostedZones -> Records -> First record is recently created on
+
+	- For created hostedzone kranthi.xyz will have last column with list of Named Servers at AWS (need to import these name servers in namecheap toget this working)
+
+		Value/Route traffic to       (copy below namedservers to namecheap domains)
+
+		ns-736.awsdns-28.net.
+		ns-1970.awsdns-54.co.uk.
+		ns-78.awsdns-09.com.
+		ns-1201.awsdns-22.org. 
+
+->HeadBack to NameCheap:
+		- purchased domain name recently  "kranthi.xyz"
+		- Need to manage the domainname now, click on manage button.
+		- Under NAMESERVERS: select Custom DNS
+	                                <aws_hosted_zones_name>  //Add here all aws named servers
+			ex:             ns-736.awsdns-28.net.
+					ns-1970.awsdns-54.co.uk.
+					ns-78.awsdns-09.com.
+					ns-1201.awsdns-22.org.
+
+                - click on green tick to save (right side)
+		- once this is done saving, that connection is complete
+	
+-> summary:
+	I have purchased domain name verycheap around dollar in namecheap & it is now connected to Router 53 hostedzone.
+
+-> This change to propogate throw all Named servers around the world, it will take 24hrs (to use any of the Route 53 services).
+
+-> Create Simple Record in Route54 that points to EC2 instance (we can test like this Untill our above DomainName's are up to use )
+
+     => Copy EC2 instace running IPV4 address  (usually this is how we access our webservers throw EC2 instance )
+
+	-> AWS login
+	-> Go to EC2 instance
+	-> I have one webserver running in EC2 instance so copy/take one ipv4 address
+     
+     => HeadBack to Route 53
+	
+	-> Create Hostedzone -> create record   (create basic record that points to EC2 Instance)
+        -> Fill Details before that (switch to wizard view instead formview which is towards rightside)
+        -> Simple routing
+        -> Next & Define Simple record
+	-> Record name
+		-specify subdomain name 
+                    ex: demo1           (probably I am going to use for bunch of different services in aws & will se)
+		   so we can access as
+			demo1.kranthi.xyz (<subdomain>.<domain_name>)
+	-> Record Type
+		- Choose:  A-Routes traffic to an IPV4 address and some AWS resources.
+		- Choose endpoint:   S3 or APIgateway or CloudFront or IP address (for EC2Instance)  or load balancers
+				    (ex: S3, means I want to setup domain name for S3bucket that is hosting website & similarly for cloudfront..etc)
+		                   -These is how we define domain name for bunch of AWS services.
+	        
+		- Rite Now choosing IP Address for EC2Instance that is hosting one webserver rite now (so All I need is EC2instance public IPV4 address & copy that
+			& paste here in blank area)
+
+		- Copy & paste here IPV4 address of hosted webserver in EC2
+	
+	-> Click Define Simple record
+	-> click Create Records  
+
+-> All of these DNS things will take a little bit of time
+	-> we have setup domainname wait a day
+	-> we have setup record also wait 30mins to 1hr.
+
+-> After waiting plese visit the domain name
+   
+    https://demo1.kranthi.xyz   (ur website will loads)
+	 
+
+==============
+learning links:
+https://www.youtube.com/watch?v=jDz4j_kkyLA
+
+   
+
+
+	
+
+
+ 
+ 
+
+		
+		
+		
+		

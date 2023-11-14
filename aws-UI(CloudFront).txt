@@ -1,0 +1,231 @@
+ReactJS UI deployment/Hosting using CloudFront
+======================================
+
+-> AWS S3 is the basic storage that allows us to store the files in the cloud
+
+-> AWS CloundFront is a more advance service, that allows us to take the files stored in S3 bucket & distrubute them in the globally, to significantly reduces the latency when multiple people request for the files.
+	- it as more power full feature over S3
+	- we can add custom Domain names & SSL certificates, so we can access our web with HTTPs.
+
+UI Deployment Types:
+------------------
+	1. Just S3 bucket with Custom Domain(we can have less control & can't serve website over HTTPs)
+	2. CloudFront with S3 bucket
+
+CloudFront Distribution:
+======================
+
+-> Create React project  & do "npm run build"
+	we get
+		dist or build folder with static files/assets
+
+-> Need to create S3 bucket in aws
+	=> BucketName = movie-ui-cf
+	-> Keep everything as is
+	-> submit/create bucket
+
+-> Open/Click on the Created Bucket
+	=>Upload files or drag & drop to s3 bucket dist files
+	-> click upload
+
+-> Now React app/code/project exists in S3 bucket
+
+-> Search for CloudFront & open it
+	=> Fill the details
+		-> Origin domain = choose recently created S3 related domain from searchbar(it will take those files & copied 		   globally & configured how can be access over a internet)
+
+	=> Go to S3 bucket access
+		-> Yes use OAI (origin Access Identity)
+		-> Create new OAI (basically allows us to leave the bucket as private from nothing can be access from bucket 		   itself & any access to website files should be done throw cloudFront)
+		-> Click Create
+		-> Bucket Policy
+			-Yes, update the bucket policy.(so creating CF distrubution will update the S3b to give CF access 				nothing else).
+	=> Viewer
+		-> Viewer protocal policy
+			-Redirect HTTP to HTTPS	(when someon tries to hit http to my website redirect to https)
+	=>Setting
+		-> we can choose any , but leave as it is for now
+
+		-> Alternate domain name:  (we dont specify we get domain name from CF that is huge/ugly domain name)
+			- Add item	(to add cutom domain name)
+			- Inorder to do this(adding domain name) correclty first we need to setup domain in Route53
+
+->Route 53   (you will find seperate file for Route 53 tutorials)
+	=> open Route53 service in newtab
+		-> Click on Hosted Zones
+		-> Need to setup hostedzone domain name
+
+	->Copy the Domain name u want to use
+
+
+->Resume Process in CloudFront (from above prev steps)
+
+	=>Setting
+		->Alternate domain name: movieuiind.com  (copied domainname from Route 53 )
+		
+		->Custom SSL certificate:  (to make this work over HTTPS we need custom SSL certificates)
+			-Request certificate   (it will request from "AWS certificate manager")
+			
+	=>Request Public certifiate
+		->Domain names: movieuiind.com (give domain which u want to request certificate for)
+		->Select validatin method
+			-DNS validation - recommended (it will be validate throw Route 53)
+		-> Click/Submit Request
+
+		-> Click on certificate ID   (as Status shows pending validation)
+
+			- AWS Certificate Manager -> Certificates -> click on certID
+		 	- Scroll Down & click on "Create records in Route 53" btn.
+			- Create Records		(so it will create records & validate my domains)
+			- Status is Pending validation 	(will take 2 mins to update to green)
+	
+	=>Head Back to CloudFront
+
+		->Custom SSL certificate: 
+			-click on retry or refresh button there
+			-Now in dropdown able to view SSL Cert for our custom domain created above & select that
+		
+		->Deafult root object - optional
+			- Enter  /index.html (this is static website when we make request ti CF we will tell to serve							first index.html file & becoz that is entry point to reactapp)
+		-> Finally click on
+		 Create distribution
+
+		-> Will take sometime to deploy
+
+		-> Meanwhile headback to Route53
+
+	=> Meanwhile headback to Route53
+
+		=> Route 53 -> HostedZones -> select your domain & click on it
+			->Now Create Record for CF distribution
+			->Choose routing policy
+				-select Simple routing
+			-> Next (creare new simple route)
+			-> Click on "Define simple route"
+				Record name: <subdomain> <domainname>its already populated> (enter subdomain if want)
+				Record type: A-Routes traffic to an IPV4 address and some AWS resources.
+				Value/Route traffice to:  Alias to CloudFront distribution
+					choose distribution - will load our domain name of earlier created distrbution
+			-> Submit 
+			-> Define Simple Route
+			-> Create Records (it will take sometime to proapogate to 30 mins - couple of hours)
+		
+		=> Navigate to "movieuiind.com" to see my website
+		=> While waiting for this we can do onemore thing in CF distribution that we made
+
+	=> Meanwhile headback to CloudFront Distributions
+
+		=> Create Error Page
+			-> Select our distribution 
+			-> Error Pages -> create custom error response
+			-> When we try to request page/route that doesn't even exists in CF it will response with 403 status code
+			-> Create custom error response
+				->Error response
+					HTTP error code : 403 Forbidden
+					Error cachin TTL: 10
+					Customize error response:
+						-Yes
+						-Response page path : /index.html   (so we will navigate to actual default page if tries to goes to wrong path)
+						-HTTP Response code: 200 OK
+			-> Submit/Create custom error response.
+
+
+-> CloudFront & Route53 setup is done completly but still deployment is progress, so it will done once everything gets completes.
+
+-> Navigate to "https://movieuiind.com"  in chrome & see websites loads
+
+-> If I want to update the code , edit the code in vscode
+	-> Rebuild the project - npm run build
+	-> you will have update dist folder with updated codes
+	
+	->To get this updated files in S3, come to S3 bucket
+	-> Choose our s3 bucket or click on link
+	-> then upload or drag and drop all the dist folder & files
+	-> Reupload  (now it will overridded with old code files S3 bucket)
+	-> Now refresh the page in web but u wont see the updated code changes,this is becoz CF done lot of chaching
+	-> somtimes might take 24 hrs CF to propogate this updated changes & reflect in UI and another thing is
+	-> Need to Tell CF distribution that is been updated with files & should invalidate the cache
+
+
+	=> Meanwhile headback to CloudFront Distributions:
+		-> select our CF distribution -> Invalidations -> Create new Invalidations
+		-> Fill Object paths
+			/*        (because I want to invalidate the all files anyhow its static website doesn't have many files)
+		-> Create Invalidations. (once the status is success)
+
+-> Refresh the Page/tab in chrome u will see updated code
+
+Updating code files & deploying
+==============================
+	Manual Process:
+	--------------
+		1. Generate  dist/build folder for react app
+		1. upload files to s3
+		2. invalidate files in cloudfront (so then u can actually see the updates)
+	Automate:
+	---------
+		-To automate above steps everytime so we can use "AWS CLI".
+		-Need to setup AWS CLI for S3 static websites.
+	        -Go to package.json:
+			"scripts":{
+			  "sync": "aws s3 sync <local_directory_path> 's3://<my_bucket_name>'",	
+			  "invalidate": "aws cloudfront --profile 'meech-ward' --region 'ca-central-1' create-invalidation --distribution-id <cf_distrubtion_id> --paths '/					*'",	
+			}
+
+			"scripts":{
+			  "sync": "aws s3 --profile 'meech-ward' --region 'ca-central-1' sync ./dist 's3://movie-ui-cf'",
+			  "invalidate": "aws cloudfront --profile 'meech-ward' --region 'ca-central-1' create-invalidation --distribution-id E1Q621BGHSJ --paths '/*'",	
+			}
+
+		-Now update code files & build the project
+			npm run build  or yarn build
+		-Now do 
+			yarn sync
+			yarn invalidate
+
+		-Refresh the page now
+
+
+
+===========================
+learning links:
+https://www.youtube.com/watch?v=lPVgfSXTE1Y
+			
+				
+			
+
+
+		
+
+  	
+
+	
+
+
+			
+
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
