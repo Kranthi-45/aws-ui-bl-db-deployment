@@ -1,0 +1,24 @@
+-> open IAM service in aws 
+(ex: create user in aws to access aws resource/service from ourtside, currently providing full access)
+
+IAM 
+---------
+-> dashboard - users (below creating user with programetic access so we can connect to aws service from remote/local) 
+
+	username: s3bucketmovieapp
+	-next
+	-Attach policies
+           search for AmazonS3FullAccess & select it
+	-Add new tag
+	    key - s3bucket-movie
+	-create user
+	
+-> open/click on the created IAM User 
+	- security credentials
+	- Access key
+		- create - choose (local code or others) - Description tag value(optional) - next 
+		- u will see below secret keys
+
+
+Access key - AKIAXYD3M6ZLTWLGQPOY
+Secret access key - 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
