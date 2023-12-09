@@ -181,3 +181,10 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'us-east-1'   # Replace with your AWS region
 
+youtube link:
+-----------
+Using GitHub Actions to auto-upload to AWS S3 | CI CD
+https://www.youtube.com/watch?v=JKfxmseBdbs&t=885s
+
+Deploying a React app with GitHub Actions | Amazon S3 bucket
+https://www.youtube.com/watch?v=HVw_NZUhDKs&t=394s
