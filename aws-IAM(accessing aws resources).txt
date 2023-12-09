@@ -22,3 +22,7 @@ IAM
 
 Access key - AKIAXYD3M6ZLTWLGQPOY
 Secret access key - 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
+
+youtube link:
+AWS | Create an IAM user for both console and programmatic access and get Access/Secret Key 
+https://www.youtube.com/watch?v=66dm5_TnKTc
