@@ -1,0 +1,268 @@
+
+->EC2 
+-> instances -> launch instances
+ 	-Enter app name(movieBL)
+	-choose AMI:     Ubuntu Server 20.04 LTS (HVM), SSD Volume Type(using this in tutorial)
+						or
+			Select Amazon Linux / ubuntu in Application & OS Images.
+
+	-choose Instance type:			 
+			Choose Freetire eligible from dropdown / t2.micro free tier
+
+	-Create Keypair -> Generate new key pair (same as SSH creds to securely login into this EC2 instance)
+		- This EC2 instance is on AWS when going to login this Instance or connecting to it from our local machine 		   requires keypair
+
+		      -> Enter pair name -> RSA  & .pem file format -> Create submit (it will downloads in computer)
+	              -> Create new Folder as pemFiles in project location & move above generated file into that folder.
+
+        -keep as it as
+	-Launch instance
+
+-> Create new github repo(for auto deployment)
+   push one restapi code from local to remote repo
+
+-> Go to Created Instance in EC2, click on it
+        - open Instance state dropdown -> start instance  (when instance is started & status is Running)
+	- select instance & click on connect
+	- go to SSH client  & copy
+		Example:
+
+ 			ssh -i "movieBL.pem" ec2-user@ec2-107-20-130-49.compute-1.amazonaws.com
+
+-> Open Terminal & connect to EC2 instance using above ssh
+     - go to download where pem file present
+     
+      #commands
+	cd Downloads/secreat_keypair
+
+	sudo ssh -i "movieBL.pem" ec2-user@ec2-107-20-130-49.compute-1.amazonaws.com  (for linux/mac)
+	ssh -i "movieBL.pem" ec2-user@ec2-107-20-130-49.compute-1.amazonaws.com  (for windows)
+        
+        password: <enter system pass>
+
+     - Now terminal is connected to EC2 instance/server now u can do whaterver u want
+
+
+->Go to Github repo once
+	-select repo BL-SpringBoot-MovieProject
+        -settings -> actions -> runners -> new self-hosted runner
+	   Runner image: Linux (we have choose & created in ec2 the linux so choosing same, but we can choose any)
+	
+           Download: ( u will find below commands pls hit in EC2 instance linux machine/ local cmd ec2 connected)
+
+->Back to EC2 terminal connect via local:
+
+Please hit below commands
+
+#commands
+
+# Create a folder
+$ mkdir actions-runner && cd actions-runner# Download the latest runner package
+
+$ curl -o actions-runner-linux-x64-2.311.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz# Optional: Validate the hash
+
+$ echo "29fc8cf2dab4c195bb147384e7e2c94cfd4d4022c793b346a6175435265aa278  actions-runner-linux-x64-2.311.0.tar.gz" | shasum -a 256 -c# Extract the installer
+                              or
+
+echo "29fc8cf2dab4c195bb147384e7e2c94cfd4d4022c793b346a6175435265aa278  actions-runner-linux-x64-2.311.0.tar.gz" | shasum -a 256 -c                            (ubunutu - linx)
+                              or
+
+echo "29fc8cf2dab4c195bb147384e7e2c94cfd4d4022c793b346a6175435265aa278  actions-runner-linux-x64-2.311.0.tar.gz" | sha256sum -c                       (amazon - linux)
+
+$ tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
+	
+
+-configure #commands
+
+(ubuntu linux): hit
+
+./config.sh --url https://github.com/Kranthi-45/BL-SpringBoot-MovieProject --token ANBZY5VS4HDYDUUOYUCSXRTFORZBI 
+	
+                              or
+(amazon linux):
+
+sudo yum install libicu
+sudo yum install liblttng-ust
+sudo yum install libssl
+
+./config.sh --url https://github.com/Kranthi-45/BL-SpringBoot-MovieProject --token ANBZY5VS4HDYDUUOYUCSXRTFORZBI
+
+
+-After entering enter by keeping remaining default thing as it is then hit below cmnds
+
+ #commands
+  ls                 		(u will find svc.sh i,e imp file created)
+  sudo ./svc.sh install         (using svc.sh script need to install the services)
+
+
+In summary, this svc command is installing a systemd service for the GitHub Actions Runner on the Linux system. This service allows the GitHub Actions Runner to start automatically and run as a specified user.
+
+
+Using your self-hosted runner
+# Use this YAML in your workflow file for each job (place below command in workflow.yml in github)
+runs-on: self-hosted
+
+-#commands
+  cd                  (come outside of action-runner folder & install required dependencies)
+  
+  sudo apt update     (ubuntu linux)
+        or             
+  sudo yum upgrade    (amazon linux)
+  sudo yum upgrade
+
+  sudo apt install maven openjdk-11-jre openjdk-11-jdk           (ubuntu linux)
+                       or
+  sudo yum install maven                                          (amazon linux)
+  sudo yum install java-11-amazon-corretto-devel
+
+--> Go to AWS EC2 instances
+     select instance - security  - click security groups link - Edit inbound rule - add(80 port, tcp, anywhere) - save rules
+
+--> Next need to create workflow in github repo(instead of manual creation in local & pushing it)
+
+      repo -> actions -> configure(java with maven) - now opens maven.yml file
+      
+      -> edit & modify below script line in maven.yml
+           runs-on: ubuntu-latest (remove)
+	   runs-on: self-hosted (add/replace this)
+
+      -> remove below pull cmnd from script if needed
+
+  		pull_request:
+    		  branches: [ "main" ]
+
+      -> commit changes
+
+      -> Then go to actions tab & see pipeline is started (if pipeline fails rerun becoz earlier jdk not available in ec2)
+      -> First time will take more time than usual to get success
+
+
+-> Come to Local editor pull the latest code(above created workflow files in repo to local)
+
+-> Wait untill above github action build is success once it is done we can
+  _work directory in ec2 instance under action-runner folder
+  
+   if it is taking more time pls stop running(action-runner in ec2 instance connect to ec2 via terminal)
+
+Restart runner:
+-----------
+#commands (in ec2 instance)
+
+cd action-runner
+sudo ./svc.sh stop
+sudo ./svc.sh start
+
+
+-->Come back to terminal connected to EC2 instance:(after maven.yml workflow build is success)
+   
+   ls
+   cd action-runner
+   ls
+   cd _work
+   ls
+   cd BL-SpringBoot-MovieProject           (repo name)
+   ls
+   cd BL-SpringBoot-MovieProject
+   ls
+   cd target
+   ls                                       (u will see jar here, when build is completed we see jar)
+   
+ 
+--> In Local edit maven.yml file & push to repo (add jar running command)
+
+   #add below lines in maven.yml file
+
+    - name: Execute Jar File
+      run: sudo kill -9 `sudo lsof -t -i:8080` & sudo java -jar  <EC2path_of_jar_> &
+        
+       ex:
+
+      run: sudo kill -9 `sudo lsof -t -i:8080` & sudo java -jar /home/ec2-user/actions-runner/_work/BL-SpringBoot-MovieProject/BL-SpringBoot-MovieProject/target/springRest-movieProject-1-0.0.1-SNAPSHOT.jar &
+
+
+-> In Gitrepo Build is success, then goto EC2 instance copy ipv4 address & port hit in browser check api
+
+
+-> If api is not working may be jar running is stopped
+
+stop & rerun the backend
+
+sudo lsof -i :8080
+sudo kill -9 <PID>
+java -jar springRest-movieProject-1-0.0.1-SNAPSHOT.jar
+
+
+http://107.20.130.49:8080/
+
+-> Assigning static IPV4 is better
+
+Elastic IP's Steps:
+-------
+->In EC2 instance 
+ - Elastic IP's -> Allocate elastic ips -> keep as is -> Allocate - Created static ip
+ - choose created static ip -> Associate Elastic IP adress -> instance  (choose ur instance)
+ - Allow this Elastic IP (tick it) - Associate
+
+->Elastic IPV4 address for movieBL EC2 instance:
+   54.227.231.106
+
+-> Now whenever EC2 instane is started/reconnected the ipv4 address wont change frequently u can use constant one everytime 
+   
+http://54.227.231.106:8080/
+
+-> Whenever new Elastic ipv4 is associated it will stop we need to go to Ec2 instance -> COnnect -> SSHclient -> take that command & connect via
+  terminal again
+
+
+----------------------------maven.yml file ------------------------
+
+
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+    - name: Execute Jar File
+      run: sudo kill -9 `sudo lsof -t -i:8080` & sudo java -jar /home/ec2-user/actions-runner/_work/BL-SpringBoot-MovieProject/BL-SpringBoot-MovieProject/target/springRest-movieProject-1-0.0.1-SNAPSHOT.jar &
+
+    # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
+    # - name: Update dependency graph
+    #   uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
+
+
+
+===================
+youtube link:
+Auto Deploy Spring Boot Project Using GitHub Actions to AWS EC2
+https://www.youtube.com/watch?v=1-CKqngg6GY
+
+
+  
+
+   
+
+
+
+	
+
+
+        
+	
+
+
