@@ -1,4 +1,5 @@
 -> open IAM service
+(ex: create user in aws IAM service to access its aws resource/service from outside, currently providing full access)
 
 IAM 
 ---------
