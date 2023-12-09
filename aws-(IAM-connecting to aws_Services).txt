@@ -1,0 +1,182 @@
+-> open IAM service
+
+IAM 
+---------
+-> dashboard - users (below is the user with programetic access he can push the code) 
+
+	username: s3bucketmovieapp
+	-next
+	-Attach policies
+           search for AmazonS3FullAccess & select it
+	-Add new tag
+	    key - s3bucket-movie
+	-create user
+	
+-> open/click on the created IAM User 
+	- security credentials
+	- Access key
+		- create - choose (local code or others) - Description tag value(optional) - next - u will see keys
+
+
+Access key - AKIAXYD3M6ZLTWLGQPOY
+Secret access key - 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
+
+------------------------------UI auto deployment using github actions
+
+--- continus Integration & building the ui project:
+
+- open vscode under project
+
+- create below folders & sub folders
+	 .github
+	     workflows
+		workflow.yml
+
+- create workflow.yml & write scripts as below
+
+----------
+name: React CI
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [15.x]
+
+    steps:
+      - uses: actions/checkout@v1
+      - run: npm install
+      - run: npm run build
+      # - run: npm test
+
+
+- push the above file to github  & go to actions tab , the pipeline will install, build the code
+- Add extra lines to deploy the app which is already build by using above, before that
+
+-- open the github repo:(add below aws s3 bucket keys in github to push the build folder to aws auto deploy)
+
+	settings - secrets - actions - new secreat repository - Add/New secreate(create below 3 keys)
+
+		ex:- AWS_S3_BUCKET : movie-ui
+                     AWS_ACCESS_KEY_ID: AKIAXYD3M6ZLTWLGQPOY     			(created from IAM)
+		     AWS_SECRET_ACCESS_KEY: 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  	(created from IAM)
+
+   repo: https://github.com/jakejarvis/s3-sync-action
+
+
+-- copy below deployment lines in workflow.yml in vscode local
+
+-------------
+    - uses: jakejarvis/s3-sync-action@master
+      with:
+        args: --acl public-read --follow-symlinks --delete
+      env:
+        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-1'   # optional: defaults to us-east-1
+        SOURCE_DIR: 'public'      # optional: defaults to entire repository
+
+
+-- pls commit & push to repo then go to actions & see pipline
+-- if the pipeline is success then open aws s3 bucket static website link
+
+=======================================================================
+                                            Deployment using pre-built actions (workflow.yml file)
+
+Documentation/repo linkg:
+https://github.com/jakejarvis/s3-sync-action
+
+In your workflow, you are leveraging a pre-built, reusable action created by Jake Jarvis (s3-sync-action) to handle the deployment process to an S3 bucket. This approach has several advantages:
+
+Code Reusability: You don't need to write and maintain the deployment logic yourself. Instead, you can use a well-maintained and established action that already encapsulates the necessary functionality.
+
+Community Contributions: Actions like s3-sync-action are often open-source and developed by the community. This means you can benefit from improvements, bug fixes, and new features contributed by others.
+
+Time Savings: Using a pre-built action saves you time and effort, as you don't have to reinvent the wheel. This is particularly valuable for common tasks like deploying to S3, where established solutions exist.
+
+Consistency: Actions provide a consistent and standardized way to perform tasks in GitHub Actions workflows. This helps ensure that your deployment process is executed reliably and predictably.
+
+			
+-------
+name: React CI
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [15.x]
+
+    steps:
+      - uses: actions/checkout@v1
+      - run: npm install
+      - run: npm run build
+      # - run: npm test  # This line is commented out properly
+
+      - uses: jakejarvis/s3-sync-action@master
+        with:
+          # args: --acl public-read --follow-symlinks --delete --exclude '.git*/*'
+          args: --follow-symlinks --delete --exclude '.git*/*'
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'   # optional: defaults to us-east-1
+          SOURCE_DIR: 'build'      # optional: defaults to the entire repository
+
+
+                                                          or
+===========================================================
+				Deployment using own actions (workflow.yml file)
+
+name: React CI
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [15.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build application
+        run: npm run build
+
+      - name: Deploy to S3
+        run: |
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+          aws configure set region $AWS_REGION
+
+          aws s3 sync build/ s3://${{ secrets.AWS_S3_BUCKET }}/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'   # Replace with your AWS region
+
