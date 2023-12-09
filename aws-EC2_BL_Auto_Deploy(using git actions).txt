@@ -246,6 +246,53 @@ jobs:
     #   uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
 
 
+=====================Runners stopping/ springboot app stopping when instance is closed-------------------
+To run continuously until EC2 instance is stopped pls follow below steps
+
+-> Connect to your EC2 instance using SSH:
+
+	ssh -i "your-key.pem" ec2-user@your-ec2-ip
+
+-> Navigate to the /etc/systemd/system/ directory where service unit files are usually stored:
+
+	cd /etc/systemd/system/
+	#Create a new service file. You can use a text editor like nano for this:
+	sudo nano spring-rest-movie.service
+
+-> Copy and paste the content of your service file into the editor. The content you provided seems correct:
+
+ini
+------
+[Unit]
+Description=Spring Boot Movie Project
+After=network.target
+
+[Service]
+User=ec2-user
+ExecStart=/usr/bin/java -jar /path/to/your/springRest-movieProject-1-0.0.1-SNAPSHOT.jar
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
+Make sure to replace /path/to/your/springRest-movieProject-1-0.0.1-SNAPSHOT.jar with the actual path to your JAR file.
+----------
+
+-> Save and exit the text editor:
+For nano, press Ctrl + X, then press Y to confirm changes, and press Enter.
+
+-> Reload the systemd manager configuration:
+	sudo systemctl daemon-reload
+  Start the service:
+	sudo systemctl start spring-rest-movie
+  Enable the service to start on boot:
+        sudo systemctl enable spring-rest-movie
+  Now, your Spring Boot application should be running as a systemd service on your EC2 instance. You can check the status of the service using:
+        sudo systemctl status spring-rest-movie
+  And you can stop or restart the service using:
+	sudo systemctl stop spring-rest-movie
+	sudo systemctl restart spring-rest-movie
+
+Remember to replace placeholder values in the service file with your actual values.
 
 ===================
 youtube link:
