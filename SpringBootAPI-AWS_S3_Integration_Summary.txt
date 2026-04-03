@@ -1,0 +1,170 @@
+AWS S3 Integration with Spring Boot - Minimal Dependencies and Configuration
+==========================================================================
+
+1. Maven/Gradle Dependencies
+---------------------------
+Required AWS SDK v2 dependencies for S3:
+
+Maven:
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>s3</artifactId>
+    <version>2.25.63</version>
+</dependency>
+
+Spring Boot Starter (if not already included):
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter</artifactId>
+</dependency>
+
+2. S3 Client Configuration
+--------------------------
+Create S3Client bean using default credentials provider (recommended):
+
+@Configuration
+public class S3Config {
+    
+    @Value("${aws.region:us-east-1}")
+    private String region;
+    
+    @Bean
+    public S3Client s3Client() {
+        return S3Client.builder()
+                .region(Region.of(region))
+                .credentialsProvider(DefaultCredentialsProvider.create())
+                .build();
+    }
+}
+
+3. Application Configuration (application.yml)
+----------------------------------------------
+aws:
+  region: us-east-1
+  s3:
+    bucketName: your-bucket-name
+
+reports:
+  base-folder:
+    YOUR_REPORT_TYPE: folder_name_in_s3
+
+4. Service Usage Example
+-----------------------
+@Service
+public class ReportDownloadService {
+    
+    private final S3Client s3Client;
+    
+    public ReportDownloadService(S3Client s3Client) {
+        this.s3Client = s3Client;
+    }
+    
+    public byte[] downloadReport(String bucketName, String key) {
+        try (S3Client client = s3Client) {
+            GetObjectRequest request = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build();
+            
+            ResponseBytes<GetObjectResponse> objectBytes = client.getObjectAsBytes(request);
+            return objectBytes.asByteArray();
+        } catch (NoSuchKeyException e) {
+            // Handle not found
+            throw e;
+        } catch (S3Exception e) {
+            // Handle S3 errors
+            throw e;
+        }
+    }
+}
+
+5. Credential Management (NO KEYS IN CODE)
+------------------------------------------
+The application uses DefaultCredentialsProvider which automatically tries:
+- Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+- AWS profile (~/.aws/credentials)
+- IAM role (EC2/ECS/Lambda)
+- Container credentials (ECS)
+
+DO NOT hardcode access keys in application.yml or Java code.
+
+6. Runtime Environment Setup
+----------------------------
+For local development, set environment variables:
+export AWS_ACCESS_KEY_ID=your_key
+export AWS_SECRET_ACCESS_KEY=your_secret
+export AWS_REGION=us-east-1
+
+For AWS deployment:
+- Attach IAM role to EC2/ECS/Lambda with S3 permissions
+
+7. Your Code Implementation (Dual Credential Support)
+----------------------------------------------------
+Your ReportDownloadService supports both credential methods:
+
+// WITH credentials from application.yml (when required=true)
+if (propertyBinder.isCredentialsRequired()
+        && propertyBinder.getAwsAccessKeyId() != null && !propertyBinder.getAwsAccessKeyId().isEmpty()
+        && propertyBinder.getAwsSecretKey() != null && !propertyBinder.getAwsSecretKey().isEmpty()) {
+    
+    AwsBasicCredentials awsCreds = AwsBasicCredentials.create(
+            propertyBinder.getAwsAccessKeyId(),
+            propertyBinder.getAwsSecretKey());
+    s3Client = S3Client.builder()
+            .region(region)
+            .credentialsProvider(StaticCredentialsProvider.create(awsCreds))
+            .build();
+} 
+
+// WITHOUT credentials (when required=false) - uses default chain
+else {
+    s3Client = S3Client.builder()
+            .region(region)
+            .build(); // Uses DefaultCredentialsProvider automatically
+}
+
+8. How It Works With Your Config
+--------------------------------
+Your current application.yml:
+aws:
+  credentials:
+    required: false  # Uses environment variables/IAM role
+  accessKeyId: <>  # Ignored when required=false
+  secretKey: <>  # Ignored when required=false
+
+With required=false:
+- Code skips StaticCredentialsProvider
+- Uses DefaultCredentialsProvider (env vars, IAM role, profile)
+- Your export AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY works
+
+With required=true:
+- Code uses StaticCredentialsProvider with YAML keys
+- Ignores environment variables
+- No keys needed in application
+
+7. Required IAM Permissions
+---------------------------
+Minimum S3 permissions for the IAM role:
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::your-bucket-name",
+                "arn:aws:s3:::your-bucket-name/*"
+            ]
+        }
+    ]
+}
+
+Key Points:
+- Use DefaultCredentialsProvider - never hardcode keys
+- S3Client is thread-safe and can be a singleton bean
+- Always close S3Client or use try-with-resources
+- Handle S3-specific exceptions (NoSuchKeyException, S3Exception)
+- Use environment-specific credential sources (IAM role in AWS, env vars locally)
